@@ -3,7 +3,7 @@
 # Importando os pacotes
 import pandas as pd
 import sqlalchemy
-import pyodbc
+import pyodbc 
 import xml.etree.ElementTree as et
 import tkinter as tk
 from tkinter import ttk
