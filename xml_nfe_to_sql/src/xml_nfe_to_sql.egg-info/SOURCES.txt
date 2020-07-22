@@ -1,0 +1,10 @@
+README.rst
+setup.py
+src/xml_nfe_to_sql/Leitor_XML.py
+src/xml_nfe_to_sql/__init__.py
+src/xml_nfe_to_sql/xml_util.py
+src/xml_nfe_to_sql.egg-info/PKG-INFO
+src/xml_nfe_to_sql.egg-info/SOURCES.txt
+src/xml_nfe_to_sql.egg-info/dependency_links.txt
+src/xml_nfe_to_sql.egg-info/requires.txt
+src/xml_nfe_to_sql.egg-info/top_level.txt
