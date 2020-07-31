@@ -6,8 +6,9 @@ from pprint import pprint
 import pandas as pd
 
 nfe_v4_schema_file = open('./resourse/xsd/NFe/v3.10/procNFe_v3.10.xsd')
+nfe_v4_base_url = './resourse/xsd/NFe/v3.10/'
 
-nfe_schema = xmlschema.XMLSchema(nfe_v4_schema_file, base_url= './resourse/xsd/NFe/v3.10/', converter=xmlschema.ParkerConverter )
+nfe_schema = xmlschema.XMLSchema(nfe_v4_schema_file, base_url= nfe_v4_base_url )
 
 
 
