@@ -5,11 +5,11 @@ import xmlschema
 from pprint import pprint
 import pandas as pd
 
-nfe_v4_schema_file = open('./resourse/xsd/NFe/v3.10/procNFe_v3.10.xsd')
+
+nfe_v4_schema_file = open('./resourse/xsd/NFe/v3.10/nfe_v3.10.xsd')
 nfe_v4_base_url = './resourse/xsd/NFe/v3.10/'
 
 nfe_schema = xmlschema.XMLSchema(nfe_v4_schema_file, base_url= nfe_v4_base_url )
-
 
 
 
@@ -18,26 +18,28 @@ for xsd_component in nfe_schema.iter_components():
     pprint (xsd_component)
     print('______________________________________\n')
 
-# print('teste de run do arquvo __init__.py')
+nfe_elem = nfe_schema.elements['NFe']
 
-# print('========================================\n')
+element_list = nfe_schema.findall('.//*')
 
-# print('ColumnarConverter: \n')
-# pprint(nfe_schema.to_dict(nfe_xml_document, dict_class=dict, indent=4))
+for element in element_list:
+    pprint(element)
+    print(' e do tipo: ')
+    pprint(element.type)
+    # print('annotation:')
+    # annotation = xmlschema.XsdAnnotation(element)
+    # pprint(annotation.documentation)
+    print('com os seguines atributos:')
+    pprint(element.attributes)
+    print('e com o seguintes conteudos (contents)')
+    for element_content in element.type.content.iter_elements():
+        pprint(element_content)
+    print('**********************************************\n')
 
-# print('========================================\n')
 
-nfeProc_element = nfe_schema.elements['nfeProc']
-print('nfeProc_element.schema: ')
-pprint(nfeProc_element.schema)
-print('nfeProc_element.elem:')
-pprint(nfeProc_element.elem)
-print('nfeProc_elem.attribute:')
-pprint(nfeProc_element.attributes)
 
-det = nfe_schema.elements['nfeProc']
-print('det.maps: ')
-pprint(nfe_schema.maps.elements[det.qualified_name])
+
+
 
 
 
