@@ -67,9 +67,7 @@ def schema_iterate(schema: xmlschema.XsdComponent, handler=None):
                     schema_iterate(c_comp)
 
 
-
 schema_iterate(nfe_schema)
-
 
 # for comp in nfe_schema.iter_components(xsd_classes=xmlschema.XsdElement):    
 
