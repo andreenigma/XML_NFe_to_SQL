@@ -42,29 +42,42 @@ component_list = nfe_schema.findall('.//*')
 
 def schema_iterate(schema: xmlschema.XsdComponent, handler=None):
 
-    for component in schema.iter_components(xsd_classes=xmlschema.XsdElement):
+    component_list = schema.findall('.//*')
+
+    # for component in schema.iter_components(xsd_classes=xmlschema.XsdElement):
+    for component in component_list:
         if component.type.is_complex():          
             columns_components = []
-            complex_components = []
-
-            for sub_comp in component.iter_components(xsd_classes=xmlschema.XsdElement):
+            complex_content = []
+            
+            # for sub_comp in component.iter_components(xsd_classes=xmlschema.XsdElement):
+            for sub_comp in component.iterchildren():
                 if sub_comp.type.is_simple():
                     columns_components.append(sub_comp)
 
-                elif sub_comp.type.is_complex():
-                    complex_components.append(sub_comp)
+                if sub_comp.type.is_complex():
+                    complex_content.append(sub_comp)
+            
+            print('Tipo complexo de nome ', component.local_name)
 
+            if component.attributes:
+                print('tem os seguintes atributos:')
+                for att in component.attributes:
+                    print(att)
 
-            if columns_components:
-                print('Tipo complexo de nome ', component.local_name)
-                print('Criar tabela com os seguintes campos? ')
+          
+            if columns_components:               
+                print('Criar tabela com os seguintes campos: ')
                 
                 for s_comp in columns_components:
-                    print(s_comp.local_name)
+                    print('\t', s_comp.local_name)
 
-            if complex_components:
-                for c_comp in complex_components:
-                    schema_iterate(c_comp)
+            if complex_content:               
+                print('\t contem os seguintes tipos complexos: ')
+                
+                for c_comp in complex_content:
+                    print('\t \t', c_comp.local_name)
+            
 
 
 schema_iterate(nfe_schema)
