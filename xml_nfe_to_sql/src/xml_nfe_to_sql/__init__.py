@@ -9,10 +9,10 @@ import pandas as pd
 import sqlalchemy
 
 
-# nfe_v4_schema_file = open('./resourse/xsd/NFe/v3.10/nfe_v3.10.xsd')
-# nfe_v4_base_url = './resourse/xsd/NFe/v3.10/'
+nfe_v4_schema_file = open('./resourse/xsd/NFe/v3.10/nfe_v3.10.xsd')
+nfe_v4_base_url = './resourse/xsd/NFe/v3.10/'
 
-# nfe_schema = xmlschema.XMLSchema(nfe_v4_schema_file, base_url= nfe_v4_base_url )
+nfe_schema = xmlschema.XMLSchema(nfe_v4_schema_file, base_url= nfe_v4_base_url )
 
 # component_list = nfe_schema.findall('.//*')
    
@@ -20,22 +20,23 @@ import sqlalchemy
 class Handler:
 
     @abc.abstractmethod
-    def create_table(table_name: str):
+    def create_table(self, table_name: str):
         pass
 
     @abc.abstractmethod
-    def create_field(table_name: str, field: str, type: str):
+    def create_field(self, table_name: str, field: str, type: str, length: int):
         pass
 
     @abc.abstractmethod
-    def delete_table(table_name: str):
+    def delete_table(self, table_name: str):
         pass
 
     @abc.abstractmethod
-    def delete_field(table_name: str, field: str)
+    def delete_field(self, table_name: str, field: str):
+        pass
 
     @abc.abstractmethod
-    def relationship(table_name: str, foreing_key: str, foreing_table: str, referenced_field: str):
+    def relationship(self, table_name: str, foreing_key: str, foreing_table: str, referenced_field: str):
         pass
 
     
@@ -43,7 +44,7 @@ class Handler:
 class Parser:
     
     @abc.abstractmethod
-    def parse(xmlShema: xmlschema.XMLSchema, handler: Handler):
+    def parse(self, xmlShema: xmlschema.XMLSchema, handler: Handler):
         print('C')
 
 
@@ -53,7 +54,7 @@ class ParserDecorator(Parser):
     def __init__(self, wrappee_parser: Parser):
         self.wrappee = wrappee_parser
 
-    def parse(self, xmlschema: xmlshema.XMLSchema, db_randler: Handler):
+    def parse(self, xmlschema: xmlschema.XMLSchema, db_randler: Handler):
         print('Executada funcao parse() da classe ParserDecorator base.')
 
 
@@ -65,10 +66,18 @@ class UnormalizedTablesCreator(Parser):
     as quais os campos e relacionamentos do banco de dados serão criados.
     """
 
-    def parse(self, xmlschema: xmlshema.XMLSchema, db_randler: Handler):
+    def parse(self, xmlschema: xmlschema.XMLSchema, db_randler: Handler):
+        # Criando lista com todos os componentes do schema, usando XPath API da biblioteca xmlschema. 
         component_list = xmlschema.findall('.//*')
+
         for xsd_component in component_list:
-            # faca alguma coisa
+            if xsd_component.type.has_complex_content():
+                db_randler.create_table(xsd_component.local_name) 
+
+                for child in xsd_component.iter_children('*'):
+                    if child.type.is_simple():
+                        db_randler.create_field(xsd_component.local_name, child.local_name, 'string', 10 ) # string e 10 para testes!!!
+                
 
 
 class RelationalCreator(ParserDecorator):
@@ -76,8 +85,54 @@ class RelationalCreator(ParserDecorator):
     def __init__(self, wrappee_parser: Parser):
         super.__init__(wrappee_parser)
 
-    def parse(self, xmlschema: xmlshema.XMLSchema, db_randler: Handler):
+    def parse(self, xmlschema: xmlschema.XMLSchema, db_randler: Handler):
         self.wrappee.parse(xmlschema, db_randler)
         component_list = xmlschema.findall('.//*')
         for xsd_component in component_list:
-            # faca alguma coisa 
+            pass 
+
+
+
+# =================================================================================
+
+
+class TableStruct:
+
+    def __init__(self, table_name: str = None, field_list: list = None):
+        self.name = table_name
+        self.fields = field_list
+        
+
+class RelationshipStruct:
+
+    def __init__(self, primary_tabe_name: str = None, foreing_table_name: str = None, primary_key_name: str = None, foreing_key_name: str = None):
+        self.primary_table = primary_tabe_name
+        self.foreing_table = foreing_table_name
+        self.primary_key = primary_key_name
+        self.foreing_key = foreing_key_name
+
+
+class FieldStruct:
+
+    def __init__(self, data_type: str = None, length: int = 8, auto_increment: bool = False, not_null: bool = False, unique_index: bool = False, binary_column: bool = False, unsigned_type: bool = False, fill_w_zero: bool = False, generated_column: bool = False):
+        self.column_type = data_type
+        self.data_length = length
+        self.is_auto_increment = auto_increment
+        self.is_not_null = not_null
+        self.is_unique_index = unique_index
+        self.is_binary_column = binary_column
+        self.is_unsigned_data_type = unsigned_type
+        self.fill_with_zero = fill_w_zero
+        self.generated_column = generated_column
+
+
+
+class MetaProgramingHandler(Handler):
+
+    def __init__(self):
+        self.table_list = []
+        self.relationship_list = []
+        self.code = ''
+
+
+    
