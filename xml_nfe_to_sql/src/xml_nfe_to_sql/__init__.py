@@ -2,6 +2,7 @@ __version__ = '0.1.0'
 
 # import Leitor_XML
 import abc
+import io
 import xmlschema
 from xmlschema import helpers
 from pprint import pprint
@@ -24,7 +25,11 @@ class Handler:
         pass
 
     @abc.abstractmethod
-    def create_field(self, table_name: str, field: str, type: str, length: int):
+    def create_field(self, table_name: str, field_name: str, type: str = 'VARCHAR', length: int = 40):
+        pass
+
+    @abc.abstractmethod
+    def set_field_type(self, table_name: str, field_name: str, type: str):
         pass
 
     @abc.abstractmethod
@@ -32,14 +37,26 @@ class Handler:
         pass
 
     @abc.abstractmethod
-    def delete_field(self, table_name: str, field: str):
+    def delete_field(self, table_name: str, field_name: str):
         pass
 
     @abc.abstractmethod
-    def relationship(self, table_name: str, foreing_key: str, foreing_table: str, referenced_field: str):
+    def relationship(self, foreing_key: str, foreing_table: str, referenced_table_name: str, referenced_field: str):
         pass
 
-    
+    @abc.abstractmethod
+    def delete_relationship(self, foreing_table_name: str, foreing_key: str):
+        pass
+
+    @abc.abstractmethod
+    def has_table(self, table_name: str) -> bool:
+        pass
+
+    @abc.abstractmethod
+    def has_field(self, table_name: str, field_name: str) -> bool:
+        pass 
+
+
 
 class Parser:
     
@@ -98,7 +115,7 @@ class RelationalCreator(ParserDecorator):
 
 class TableStruct:
 
-    def __init__(self, table_name: str = None, field_list: list = None):
+    def __init__(self, table_name: str = None, field_list: list = []):
         self.name = table_name
         self.fields = field_list
         
@@ -114,7 +131,8 @@ class RelationshipStruct:
 
 class FieldStruct:
 
-    def __init__(self, data_type: str = None, length: int = 8, auto_increment: bool = False, not_null: bool = False, unique_index: bool = False, binary_column: bool = False, unsigned_type: bool = False, fill_w_zero: bool = False, generated_column: bool = False):
+    def __init__(self, field_name: str, data_type: str = None, length: int = 8, auto_increment: bool = False, not_null: bool = False, unique_index: bool = False, binary_column: bool = False, unsigned_type: bool = False, fill_w_zero: bool = False, generated_column: bool = False):
+        self.name = field_name
         self.column_type = data_type
         self.data_length = length
         self.is_auto_increment = auto_increment
@@ -125,7 +143,7 @@ class FieldStruct:
         self.fill_with_zero = fill_w_zero
         self.generated_column = generated_column
 
-
+    
 
 class MetaProgramingHandler(Handler):
 
@@ -133,6 +151,64 @@ class MetaProgramingHandler(Handler):
         self.table_list = []
         self.relationship_list = []
         self.code = ''
+    
+    def create_table(self, table_name: str):
+        self.table_list.append(TableStruct(table_name))
+   
+    def create_field(self, table_name: str, field_name: str, type: str = 'VARCHAR', length: int = 40):
+        for table in self.table_list:
+            if table.name == table_name:
+                new_field = FieldStruct(field_name, type, length)
+                table.fields.append(new_field)
+            
+    def set_field_type(self, table_name: str, field_name: str, type: str):
+        for table in self.table_list:
+            if table.name == table_name:
+                for field in table.fields:
+                    if field.name == field_name:
+                        field.column_type = type
+        
+    def delete_table(self, table_name: str):
+        for table in self.table_list:
+            if table.name == table_name:
+                self.table_list.remove(table)
+    
+    def delete_field(self, table_name: str, field_name: str):
+        for table in self.table_list:
+            if table.name == table_name:
+                for field in table.fields:
+                    if field.name == field_name:
+                        table.fields.remove(field)
+    
+    def relationship(self, foreing_key: str, foreing_table: str, referenced_table_name: str, referenced_field: str):
+        relationship_struct = RelationshipStruct(referenced_table_name, foreing_table, referenced_field, foreing_key)
+        self.relationship_list.append(relationship_struct)
+    
+    def delete_relationship(self, foreing_table_name: str, foreing_key: str):
+        pass
+
+   
+    def has_table(self, table_name: str) -> bool:
+        has_table_var = False
+
+        for table in self.table_list:
+            if table.name == table_name:
+                has_table_var = True
+
+        return has_table_var
+    
+    def has_field(self, table_name: str, field_name: str) -> bool:
+        has_field_var = False
+
+        for table in self.table_list:
+            if table.name == table_name:
+                for field in table.fields:
+                    if field.name == field_name:
+                        has_field_var = True
+
+        return has_field_var
+
+
 
 
     
