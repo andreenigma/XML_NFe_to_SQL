@@ -10,10 +10,6 @@ import pandas as pd
 import sqlalchemy
 
 
-nfe_v4_schema_file = open('./resourse/xsd/NFe/v3.10/nfe_v3.10.xsd')
-nfe_v4_base_url = './resourse/xsd/NFe/v3.10/'
-
-nfe_schema = xmlschema.XMLSchema(nfe_v4_schema_file, base_url= nfe_v4_base_url )
 
 # component_list = nfe_schema.findall('.//*')
    
@@ -100,11 +96,13 @@ class UnormalizedTablesCreator(Parser):
 class RelationalCreator(ParserDecorator):
 
     def __init__(self, wrappee_parser: Parser):
-        super.__init__(wrappee_parser)
+        super(RelationalCreator, self).__init__(wrappee_parser)
 
     def parse(self, xmlschema: xmlschema.XMLSchema, db_randler: Handler):
         self.wrappee.parse(xmlschema, db_randler)
+
         component_list = xmlschema.findall('.//*')
+
         for xsd_component in component_list:
             pass 
 
@@ -185,7 +183,9 @@ class MetaProgramingHandler(Handler):
         self.relationship_list.append(relationship_struct)
     
     def delete_relationship(self, foreing_table_name: str, foreing_key: str):
-        pass
+        for relationship in self.relationship_list:
+            if relationship.foreing_table and relationship.foreing_key:
+                self.relationship_list.remove(relationship)
 
    
     def has_table(self, table_name: str) -> bool:
@@ -209,6 +209,35 @@ class MetaProgramingHandler(Handler):
         return has_field_var
 
 
+# =============================================================================
 
 
-    
+nfe_v4_schema_file = open('./resourse/xsd/NFe/v3.10/nfe_v3.10.xsd')
+nfe_v4_base_url = './resourse/xsd/NFe/v3.10/'
+
+nfe_schema = xmlschema.XMLSchema(nfe_v4_schema_file, base_url= nfe_v4_base_url )
+
+parser_a = UnormalizedTablesCreator()
+parser_b = RelationalCreator(parser_a)
+
+handler = MetaProgramingHandler()
+
+parser_b.parse(nfe_schema, handler)
+
+print('Foram ciradas as seguintes tabelas: ')
+
+for table in handler.table_list:
+    print(table.name)
+    print('com os seguintes campos: ')
+
+    for field in table.fields:
+        print(field.name)
+
+
+print('Foram criadas os seguintes relacionamentos')
+
+for relationship in handler.relationship_list:
+    print('Foreing table: ' + relationship.foreing_table)
+    print('Foreing key: ' + relationship.foreing_key)
+    print('Primary table: ' + relationship.primary_table)
+
