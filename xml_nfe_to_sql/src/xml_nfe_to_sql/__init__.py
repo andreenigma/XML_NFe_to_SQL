@@ -86,12 +86,18 @@ class UnormalizedTablesCreator(Parser):
         for xsd_component in component_list:
             if xsd_component.type.has_complex_content():
                 db_randler.create_table(xsd_component.local_name) 
-                print('Criada a tabela: ' + xsd_component.local_name)
-
+                # print('==============================================================')
+                # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+                # print('==============================================================')
+                # print('Criada a tabela: ' + xsd_component.local_name)
+                
                 for child in xsd_component.iterchildren():
-                    if child.type.is_simple() and child.parent.local_name == xsd_component.local_name:
+                    # print ('iterou no child: ' + child.local_name)
+                    # pprint (child.type)                    
+
+                    if child.type.is_simple():                                            
                         db_randler.create_field(xsd_component.local_name, child.local_name, 'string', 10 ) # string e 10 para testes!!!
-                        print('\t criado o campo: ' + child.local_name)
+                        # print('\t criado o campo: ' + child.local_name)
 
 
 class RelationalCreator(ParserDecorator):
@@ -225,7 +231,7 @@ handler = MetaProgramingHandler()
 
 parser_b.parse(nfe_schema, handler)
 
-# print('Foram ciradas as seguintes tabelas: ')
+print('Foram ciradas as seguintes tabelas: ')
 
 # for table in handler.table_list:
 #     print(table.name)
@@ -235,10 +241,10 @@ parser_b.parse(nfe_schema, handler)
 #         print(field.name)
 
 
-# print('Foram criadas os seguintes relacionamentos')
+print('Foram criadas os seguintes relacionamentos')
 
-# for relationship in handler.relationship_list:
-#     print('Foreing table: ' + relationship.foreing_table)
-#     print('Foreing key: ' + relationship.foreing_key)
-#     print('Primary table: ' + relationship.primary_table)
+for relationship in handler.relationship_list:
+    print('Foreing table: ' + relationship.foreing_table)
+    print('Foreing key: ' + relationship.foreing_key)
+    print('Primary table: ' + relationship.primary_table)
 
