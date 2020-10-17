@@ -21,7 +21,7 @@ class Handler:
         pass
 
     @abc.abstractmethod
-    def create_field(self, table_name: str, field_name: str, type: str = 'VARCHAR', length: int = 40):
+    def create_field(self, table_name: str, field_name: str, type_name: str = 'VARCHAR', length: int = 40):
         pass
 
     @abc.abstractmethod
@@ -120,20 +120,11 @@ class RelationalCreator(ParserDecorator):
 
 class TableStruct:
 
-    def __init__(self, table_name: str = None, field_list: list = []):
+    def __init__(self, table_name: str = None, field_tuple: tuple = ()):
         self.name = table_name
-        self.fields = field_list
+        self.fields = field_tuple
         
-
-class RelationshipStruct:
-
-    def __init__(self, primary_tabe_name: str = None, foreing_table_name: str = None, primary_key_name: str = None, foreing_key_name: str = None):
-        self.primary_table = primary_tabe_name
-        self.foreing_table = foreing_table_name
-        self.primary_key = primary_key_name
-        self.foreing_key = foreing_key_name
-
-
+        
 class FieldStruct:
 
     def __init__(self, field_name: str, data_type: str = None, length: int = 8, auto_increment: bool = False, not_null: bool = False, unique_index: bool = False, binary_column: bool = False, unsigned_type: bool = False, fill_w_zero: bool = False, generated_column: bool = False):
@@ -148,38 +139,57 @@ class FieldStruct:
         self.fill_with_zero = fill_w_zero
         self.generated_column = generated_column
 
-    
 
-class MetaProgramingHandler(Handler):
+class RelationshipStruct:
 
-    def __init__(self):
+    def __init__(self, primary_tabe_name: str = None, foreing_table_name: str = None, primary_key_name: str = None, foreing_key_name: str = None):
+        self.primary_table = primary_tabe_name
+        self.foreing_table = foreing_table_name
+        self.primary_key = primary_key_name
+        self.foreing_key = foreing_key_name
+
+
+class DataBaseStruct:
+
+     def __init__(self):
         self.table_list = []
+        self.field_list = []
         self.relationship_list = []
-        self.code = ''
-    
+       
+
+class MetaProgramingHandler(Handler): 
+    data_base_map = DataBaseStruct()
+
+    code = ''
+        
     def create_table(self, table_name: str):
-        self.table_list.append(TableStruct(table_name))
+        self.data_base_map.table_list.append(TableStruct(table_name))
    
-    def create_field(self, table_name: str, field_name: str, type: str = 'VARCHAR', length: int = 40):
-        for table in self.table_list:
+    def create_field(self, table_name: str, field_name: str, type_name: str = 'VARCHAR', length: int = 40):
+        for table in self.data_base_map.table_list:
             if table.name == table_name:
-                new_field = FieldStruct(field_name, type, length)
-                table.fields.append(new_field)
-            
+                new_field = FieldStruct(field_name, type_name, length)
+                table.fields += (new_field,)
+
+                # PRINT TEMPORARIO PARA TESTES
+                print(f'{table.name} == {table_name}')
+                print(f'apensado o campo \t{new_field.name}\t na tabela\t {table.name}')
+                print(f'agora existem {len(table.fields)} campos na tabela {table.name}')
+             
     def set_field_type(self, table_name: str, field_name: str, type: str):
-        for table in self.table_list:
+        for table in self.data_base_map.table_list:
             if table.name == table_name:
                 for field in table.fields:
                     if field.name == field_name:
                         field.column_type = type
         
     def delete_table(self, table_name: str):
-        for table in self.table_list:
+        for table in self.data_base_map.table_list:
             if table.name == table_name:
-                self.table_list.remove(table)
+                self.data_base_map.table_list.remove(table)
     
     def delete_field(self, table_name: str, field_name: str):
-        for table in self.table_list:
+        for table in self.data_base_map.table_list:
             if table.name == table_name:
                 for field in table.fields:
                     if field.name == field_name:
@@ -231,7 +241,10 @@ handler = MetaProgramingHandler()
 
 parser_b.parse(nfe_schema, handler)
 
-print('Foram ciradas as seguintes tabelas: ')
+
+
+
+# print('Foram ciradas as seguintes tabelas: ')
 
 # for table in handler.table_list:
 #     print(table.name)
@@ -241,10 +254,28 @@ print('Foram ciradas as seguintes tabelas: ')
 #         print(field.name)
 
 
-print('Foram criadas os seguintes relacionamentos')
 
-for relationship in handler.relationship_list:
-    print('Foreing table: ' + relationship.foreing_table)
-    print('Foreing key: ' + relationship.foreing_key)
-    print('Primary table: ' + relationship.primary_table)
 
+# print('Foram criadas os seguintes relacionamentos')
+
+# for relationship in handler.relationship_list:
+#     print('Foreing table: ' + relationship.foreing_table)
+#     print('Foreing key: ' + relationship.foreing_key)
+#     print('Primary table: ' + relationship.primary_table)
+
+
+
+
+
+# print('Foram criadas as seguintes tabelas: ')
+
+# for table in handler.table_list:
+#     print(table.name)
+#     # print(f'com {len(table.fields)} campos')
+#     entrada = input('mostrar campos? (s/n)')
+
+#     if entrada == 's':
+#         print('campos: ')
+
+#         for field in table.fields:
+#             print(field.name)
