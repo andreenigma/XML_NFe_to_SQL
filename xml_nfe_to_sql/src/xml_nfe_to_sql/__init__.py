@@ -25,7 +25,7 @@ class Handler:
         pass
 
     @abc.abstractmethod
-    def set_field_type(self, table_name: str, field_name: str, type: str):
+    def set_field_type(self, table_name: str, field_name: str, data_type: str):
         pass
 
     @abc.abstractmethod
@@ -37,7 +37,11 @@ class Handler:
         pass
 
     @abc.abstractmethod
-    def relationship(self, foreing_key: str, foreing_table: str, referenced_table_name: str, referenced_field: str):
+    def primary_key(self, table_name: str) -> str:
+        pass
+
+    @abc.abstractmethod
+    def relationship(self, foreing_table: str, foreing_key: str, referenced_table_name: str, referenced_field: str):
         pass
 
     @abc.abstractmethod
@@ -86,19 +90,16 @@ class UnormalizedTablesCreator(Parser):
         for xsd_component in component_list:
             if xsd_component.type.has_complex_content():
                 db_randler.create_table(xsd_component.local_name) 
-                # print('==============================================================')
-                # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-                # print('==============================================================')
-                # print('Criada a tabela: ' + xsd_component.local_name)
-                
-                for child in xsd_component.iterchildren():
-                    # print ('iterou no child: ' + child.local_name)
-                    # pprint (child.type)                    
 
+                # criando chave primária padrão (id)
+                db_randler.create_field(xsd_component.local_name, 'id', 'integer', 8)
+                
+                # criando colunas além da chave primária
+                for child in xsd_component.iterchildren():
+                  
                     if child.type.is_simple():                                            
                         db_randler.create_field(xsd_component.local_name, child.local_name, 'string', 10 ) # string e 10 para testes!!!
-                        # print('\t criado o campo: ' + child.local_name)
-
+                       
 
 class RelationalCreator(ParserDecorator):
 
@@ -106,12 +107,23 @@ class RelationalCreator(ParserDecorator):
         super(RelationalCreator, self).__init__(wrappee_parser)
 
     def parse(self, xmlschema: xmlschema.XMLSchema, db_randler: Handler):
+        # executa primeiro a função parse do parser decorado
         self.wrappee.parse(xmlschema, db_randler)
 
+        # executa as operações próprias
         component_list = xmlschema.findall('.//*')
 
         for xsd_component in component_list:
-            pass 
+            for component_child in xsd_component.iterchildren():
+                if db_randler.has_table(component_child.local_name):
+                    foreing_key_string: str = xsd_component.local_name + '_id'
+                    db_randler.create_field(component_child.local_name, foreing_key_string, 'integer', 8)
+                    db_randler.relationship(component_child.local_name, foreing_key_string, xsd_component.local_name, primary_key(xsd_component.local_name))
+
+
+
+
+
 
 
 
@@ -120,16 +132,18 @@ class RelationalCreator(ParserDecorator):
 
 class TableStruct:
 
-    def __init__(self, table_name: str = None, field_tuple: tuple = ()):
+    def __init__(self, table_name: str = None, primary_key_name: str = None):
         self.name = table_name
-        self.fields = field_tuple
+        self.primary_key = primary_key_name
+        
         
         
 class FieldStruct:
 
-    def __init__(self, field_name: str, data_type: str = None, length: int = 8, auto_increment: bool = False, not_null: bool = False, unique_index: bool = False, binary_column: bool = False, unsigned_type: bool = False, fill_w_zero: bool = False, generated_column: bool = False):
+    def __init__(self, table_name: str, field_name: str, data_type: str = None, length: int = 8, auto_increment: bool = False, not_null: bool = False, unique_index: bool = False, binary_column: bool = False, unsigned_type: bool = False, fill_w_zero: bool = False, generated_column: bool = False):
+        self.table = table_name
         self.name = field_name
-        self.column_type = data_type
+        self.type = data_type
         self.data_length = length
         self.is_auto_increment = auto_increment
         self.is_not_null = not_null
@@ -168,32 +182,48 @@ class MetaProgramingHandler(Handler):
     def create_field(self, table_name: str, field_name: str, type_name: str = 'VARCHAR', length: int = 40):
         for table in self.data_base_map.table_list:
             if table.name == table_name:
-                new_field = FieldStruct(field_name, type_name, length)
-                table.fields += (new_field,)
+                new_field = FieldStruct(table_name, field_name, type_name, length)
+                self.data_base_map.field_list.append(new_field)
 
-                # PRINT TEMPORARIO PARA TESTES
-                print(f'{table.name} == {table_name}')
-                print(f'apensado o campo \t{new_field.name}\t na tabela\t {table.name}')
-                print(f'agora existem {len(table.fields)} campos na tabela {table.name}')
+                # # PRINT TEMPORARIO PARA TESTES
+                # print(f'{table.name} == {table_name}')
+                # print(f'apensado o campo \t{new_field.name}\t na tabela\t {table.name}')
+
+                # field_counter = 0
+
+                # for field in self.data_base_map.field_list:
+                #     if field.table == table.name:
+                #         field_counter += 1
+
+                # print(f'agora existem {field_counter} campos na tabela {table.name}')
              
-    def set_field_type(self, table_name: str, field_name: str, type: str):
-        for table in self.data_base_map.table_list:
-            if table.name == table_name:
-                for field in table.fields:
-                    if field.name == field_name:
-                        field.column_type = type
+    def set_field_type(self, table_name: str, field_name: str, data_type: str):
+        for field in data_base_map.field_list:
+            if field.table == table_name and field.name = field_name:
+                field.type = data_type
         
     def delete_table(self, table_name: str):
         for table in self.data_base_map.table_list:
             if table.name == table_name:
                 self.data_base_map.table_list.remove(table)
+
+        for field in self.data_base_map.field_list:
+            if field.table == table_name:
+                self.data_base_map.field_list.remove(field)
     
     def delete_field(self, table_name: str, field_name: str):
+        for field in self.data_base_map.field_list:
+            if field.table == table_name and field.name == field_name:
+                self.data_base_map.field_list.remove(field)
+
+    def primary_key(self, table_name: str) -> str:
+        primary_key_name = ''
+
         for table in self.data_base_map.table_list:
             if table.name == table_name:
-                for field in table.fields:
-                    if field.name == field_name:
-                        table.fields.remove(field)
+                primary_key_name = table.primary_key
+
+        return primary_key_name
     
     def relationship(self, foreing_key: str, foreing_table: str, referenced_table_name: str, referenced_field: str):
         relationship_struct = RelationshipStruct(referenced_table_name, foreing_table, referenced_field, foreing_key)
@@ -217,11 +247,10 @@ class MetaProgramingHandler(Handler):
     def has_field(self, table_name: str, field_name: str) -> bool:
         has_field_var = False
 
-        for table in self.table_list:
-            if table.name == table_name:
-                for field in table.fields:
-                    if field.name == field_name:
-                        has_field_var = True
+        for field in self.data_base_map.field_list:
+            if field.name == field_name and field.table == table_name:
+                has_field_var = True
+                pass
 
         return has_field_var
 
