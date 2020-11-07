@@ -83,22 +83,22 @@ class UnormalizedTablesCreator(Parser):
     as quais os campos e relacionamentos do banco de dados serão criados.
     """
 
-    def parse(self, xmlschema: xmlschema.XMLSchema, db_randler: Handler):
+    def parse(self, xmlschema: xmlschema.XMLSchema, db_handler: Handler):
         # Criando lista com todos os componentes do schema, usando XPath API da biblioteca xmlschema. 
         component_list = xmlschema.findall('.//*')
 
         for xsd_component in component_list:
             if xsd_component.type.has_complex_content():
-                db_randler.create_table(xsd_component.local_name) 
+                db_handler.create_table(xsd_component.local_name) 
 
                 # criando chave primária padrão (id)
-                db_randler.create_field(xsd_component.local_name, 'id', 'integer', 8)
+                db_handler.create_field(xsd_component.local_name, 'id', 'integer', 8)
                 
                 # criando colunas além da chave primária
                 for child in xsd_component.iterchildren():
                   
                     if child.type.is_simple():                                            
-                        db_randler.create_field(xsd_component.local_name, child.local_name, 'string', 10 ) # string e 10 para testes!!!
+                        db_handler.create_field(xsd_component.local_name, child.local_name, 'string', 10 ) # string e 10 para testes!!!
                        
 
 class RelationalCreator(ParserDecorator):
@@ -106,20 +106,26 @@ class RelationalCreator(ParserDecorator):
     def __init__(self, wrappee_parser: Parser):
         super(RelationalCreator, self).__init__(wrappee_parser)
 
-    def parse(self, xmlschema: xmlschema.XMLSchema, db_randler: Handler):
+    def parse(self, xmlschema: xmlschema.XMLSchema, db_handler: Handler):
         # executa primeiro a função parse do parser decorado
-        self.wrappee.parse(xmlschema, db_randler)
+        self.wrappee.parse(xmlschema, db_handler)
 
         # executa as operações próprias
         component_list = xmlschema.findall('.//*')
 
         for xsd_component in component_list:
             for component_child in xsd_component.iterchildren():
-                if db_randler.has_table(component_child.local_name):
+                if db_handler.has_table(component_child.local_name):
                     foreing_key_string: str = xsd_component.local_name + '_id'
-                    db_randler.create_field(component_child.local_name, foreing_key_string, 'integer', 8)
-                    db_randler.relationship(component_child.local_name, foreing_key_string, xsd_component.local_name, primary_key(xsd_component.local_name))
+                    db_handler.create_field(component_child.local_name, foreing_key_string, 'integer', 8)
+                    db_handler.relationship(component_child.local_name, foreing_key_string, xsd_component.local_name, db_handler.primary_key(xsd_component.local_name))
 
+        # for xsd_component in component_list:
+        #     if xsd_component.parent != None:
+        #         print (type(xsd_component.parent.local_name))
+        #         foreing_key_string = str(xsd_component.parent.local_name) + '_id'
+        #         db_randler.create_field(xsd_component.local_name, foreing_key_string, 'interger', 8)
+        #         db_randler.relationship(xsd_component.local_name, foreing_key_string, xsd_component.parent.local_name, 'id')
 
 
 
@@ -198,8 +204,8 @@ class MetaProgramingHandler(Handler):
                 # print(f'agora existem {field_counter} campos na tabela {table.name}')
              
     def set_field_type(self, table_name: str, field_name: str, data_type: str):
-        for field in data_base_map.field_list:
-            if field.table == table_name and field.name = field_name:
+        for field in self.data_base_map.field_list:
+            if field.table == table_name and field.name == field_name:
                 field.type = data_type
         
     def delete_table(self, table_name: str):
@@ -227,18 +233,18 @@ class MetaProgramingHandler(Handler):
     
     def relationship(self, foreing_key: str, foreing_table: str, referenced_table_name: str, referenced_field: str):
         relationship_struct = RelationshipStruct(referenced_table_name, foreing_table, referenced_field, foreing_key)
-        self.relationship_list.append(relationship_struct)
+        self.data_base_map.relationship_list.append(relationship_struct)
     
     def delete_relationship(self, foreing_table_name: str, foreing_key: str):
-        for relationship in self.relationship_list:
+        for relationship in self.data_base_map.relationship_list:
             if relationship.foreing_table and relationship.foreing_key:
-                self.relationship_list.remove(relationship)
+                self.data_base_map.relationship_list.remove(relationship)
 
    
     def has_table(self, table_name: str) -> bool:
         has_table_var = False
 
-        for table in self.table_list:
+        for table in self.data_base_map.table_list:
             if table.name == table_name:
                 has_table_var = True
 
@@ -285,12 +291,12 @@ parser_b.parse(nfe_schema, handler)
 
 
 
-# print('Foram criadas os seguintes relacionamentos')
+print('Foram criadas os seguintes relacionamentos')
 
-# for relationship in handler.relationship_list:
-#     print('Foreing table: ' + relationship.foreing_table)
-#     print('Foreing key: ' + relationship.foreing_key)
-#     print('Primary table: ' + relationship.primary_table)
+for relationship in handler.data_base_map.relationship_list:
+    print('Foreing table: ' + relationship.foreing_table)
+    print('Foreing key: ' + relationship.foreing_key)    
+    print('Primary table: ' + str(relationship.primary_table))
 
 
 
