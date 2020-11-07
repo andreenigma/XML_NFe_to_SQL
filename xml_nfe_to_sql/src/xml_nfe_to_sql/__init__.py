@@ -113,23 +113,25 @@ class RelationalCreator(ParserDecorator):
         # executa as operações próprias
         component_list = xmlschema.findall('.//*')
 
+        # for xsd_component in component_list:
+        #     for component_child in xsd_component.iterchildren():
+        #         if db_handler.has_table(component_child.local_name) and db_handler.has_table(xsd_component.local_name):
+        #             foreing_key_string: str = xsd_component.local_name + '_id'
+        #             db_handler.create_field(component_child.local_name, foreing_key_string, 'integer', 8)
+        #             db_handler.relationship(component_child.local_name, foreing_key_string, xsd_component.local_name, db_handler.primary_key(xsd_component.local_name))
+
+
         for xsd_component in component_list:
             for component_child in xsd_component.iterchildren():
+                # verifica se o componente corresponde a uma tabela sql
                 if db_handler.has_table(component_child.local_name):
-                    foreing_key_string: str = xsd_component.local_name + '_id'
-                    db_handler.create_field(component_child.local_name, foreing_key_string, 'integer', 8)
-                    db_handler.relationship(component_child.local_name, foreing_key_string, xsd_component.local_name, db_handler.primary_key(xsd_component.local_name))
-
-        # for xsd_component in component_list:
-        #     if xsd_component.parent != None:
-        #         print (type(xsd_component.parent.local_name))
-        #         foreing_key_string = str(xsd_component.parent.local_name) + '_id'
-        #         db_randler.create_field(xsd_component.local_name, foreing_key_string, 'interger', 8)
-        #         db_randler.relationship(xsd_component.local_name, foreing_key_string, xsd_component.parent.local_name, 'id')
-
-
-
-
+                    for parent_component in component_child.iter_ancestors():
+                        # verifica se o componente pai corresponde a uma tabela sql
+                        if db_handler.has_table(parent_component.local_name):
+                            foreing_key_string: str = parent_component.local_name + '_id'
+                            db_handler.create_field(component_child.local_name, foreing_key_string, 'integer', 8)
+                            db_handler.relationship(component_child.local_name, foreing_key_string, parent_component.local_name, db_handler.primary_key(parent_component.local_name))
+                            break
 
 
 
@@ -190,18 +192,6 @@ class MetaProgramingHandler(Handler):
             if table.name == table_name:
                 new_field = FieldStruct(table_name, field_name, type_name, length)
                 self.data_base_map.field_list.append(new_field)
-
-                # # PRINT TEMPORARIO PARA TESTES
-                # print(f'{table.name} == {table_name}')
-                # print(f'apensado o campo \t{new_field.name}\t na tabela\t {table.name}')
-
-                # field_counter = 0
-
-                # for field in self.data_base_map.field_list:
-                #     if field.table == table.name:
-                #         field_counter += 1
-
-                # print(f'agora existem {field_counter} campos na tabela {table.name}')
              
     def set_field_type(self, table_name: str, field_name: str, data_type: str):
         for field in self.data_base_map.field_list:
@@ -231,7 +221,7 @@ class MetaProgramingHandler(Handler):
 
         return primary_key_name
     
-    def relationship(self, foreing_key: str, foreing_table: str, referenced_table_name: str, referenced_field: str):
+    def relationship(self, foreing_table: str, foreing_key: str, referenced_table_name: str, referenced_field: str):
         relationship_struct = RelationshipStruct(referenced_table_name, foreing_table, referenced_field, foreing_key)
         self.data_base_map.relationship_list.append(relationship_struct)
     
@@ -291,12 +281,22 @@ parser_b.parse(nfe_schema, handler)
 
 
 
-print('Foram criadas os seguintes relacionamentos')
+# print('Foram criadas os seguintes relacionamentos')
 
-for relationship in handler.data_base_map.relationship_list:
-    print('Foreing table: ' + relationship.foreing_table)
-    print('Foreing key: ' + relationship.foreing_key)    
-    print('Primary table: ' + str(relationship.primary_table))
+# for relationship in handler.data_base_map.relationship_list:
+#     print('======================================')
+#     print('Primary table: ' + str(relationship.primary_table))
+#     print('Foreing table: ' + relationship.foreing_table)
+#     print('Foreing key: ' + relationship.foreing_key)
+#     for field in handler.data_base_map.field_list:
+#         if field.table == relationship.foreing_table:
+#             print('\t' + field.name)   
+
+
+
+for field in handler.data_base_map.field_list:
+    print('tab->' + field.table + '\t\tcampo->' + field.name)
+    
 
 
 
