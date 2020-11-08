@@ -87,9 +87,46 @@ class UnormalizedTablesCreator(Parser):
         # Criando lista com todos os componentes do schema, usando XPath API da biblioteca xmlschema. 
         component_list = xmlschema.findall('.//*')
 
+        # TEMPORÁRIO
+        lista_de_nomes = []
+        lista_de_nomes_repetidos = []
+        print('Começou ========================================================================================')
+        print('Começou ****************************************************************************************')
+        # FIM DO TEMPORÁRIO
+
         for xsd_component in component_list:
             if xsd_component.type.has_complex_content():
                 db_handler.create_table(xsd_component.local_name) 
+
+                # TEMPORÁRIO
+                nome_da_tabela = xsd_component.local_name
+                lista_de_nomes.append(nome_da_tabela)
+
+                counter = 0
+                for name in lista_de_nomes:
+                    if name == nome_da_tabela:
+                        counter += 1
+                
+                if counter == 2:
+                    lista_de_nomes_repetidos.append(nome_da_tabela)
+
+                print('\n\nA tabela **' + nome_da_tabela + '** veio do seguinte componente:')
+                pprint(xsd_component)
+                print('TYPE:')
+                pprint(xsd_component.type)
+                print('CONTENT:')
+                pprint(xsd_component.type.content)
+                
+
+                print('Há ' + str(counter) + ' tabelas com esse nome!!!')            
+
+                print('==========================')
+                print('PARENT:')
+
+                for parent in xsd_component.iter_ancestors():
+                    print('_______________')
+                    pprint(parent)
+                # FIM DO TEMPORÁRIO
 
                 # criando chave primária padrão (id)
                 db_handler.create_field(xsd_component.local_name, 'id', 'integer', 8)
@@ -99,7 +136,10 @@ class UnormalizedTablesCreator(Parser):
                   
                     if child.type.is_simple():                                            
                         db_handler.create_field(xsd_component.local_name, child.local_name, 'string', 10 ) # string e 10 para testes!!!
-                       
+
+        # TEMPORÁRIO
+        pprint(lista_de_nomes_repetidos) 
+        # FIM DO TEMPORÁRIO             
 
 class RelationalCreator(ParserDecorator):
 
@@ -294,8 +334,8 @@ parser_b.parse(nfe_schema, handler)
 
 
 
-for field in handler.data_base_map.field_list:
-    print('tab->' + field.table + '\t\tcampo->' + field.name)
+# for field in handler.data_base_map.field_list:
+#     print('tab->' + field.table + '\t\tcampo->' + field.name)
     
 
 
