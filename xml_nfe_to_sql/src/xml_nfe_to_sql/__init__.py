@@ -156,7 +156,7 @@ class RelationalCreator(ParserDecorator):
 
 # =================================================================================
 
-class CodeVisitor:
+class Visitor:
     
     @abc.abstractmethod
     def list_variable(self, name: str, list_attribute: list) -> str:
@@ -206,31 +206,38 @@ class CodeVisitor:
     def close_block(self) -> str:
         raise NotImplementedError()
 
+
+
+
 # ==========================================================================================================   
 
 class DbVisitedElement:
    
     @abc.abstractmethod
-    def accept(self, visitor: CodeVisitor):
+    def accept(self, visitor: Visitor):
         raise NotImplementedError()
 
 
 class DbLeafElement(DbVisitedElement):
 
-    def __init__(self, name: str):
+    def __init__(self, name: str = ''):
         self.name = name
 
     @property
     def name(self) -> str:
         return self.name
 
+    def set_name(self, new_name: str):
+        self.name = new_name
+
+
 class DbCompositeElement(DbLeafElement):
-    def __init__(self, name: str):
+    def __init__(self, name: str = ''):
         super().__init__(name)
         self.children = []
 
     @abc.abstractmethod
-    def accept(self, visitor: CodeVisitor):
+    def accept(self, visitor: Visitor):
         raise NotImplementedError
 
     def add(self, child: DbVisitedElement):
@@ -264,7 +271,7 @@ class ColumnStruct(DbLeafElement):
         self.fill_with_zero = fill_w_zero
         self.generated_column = generated_column
 
-    def accept(self, visitor: CodeVisitor):
+    def accept(self, visitor: Visitor):
         visitor.type_name(type(self))
         visitor.string_variable('name', self.name)
         visitor.string_variable('type', self.type)
@@ -283,7 +290,7 @@ class TableStruct(DbCompositeElement):
     def __init__(self, table_name: str):
         super().__init__(table_name)
         
-    def accept(self, visitor: CodeVisitor):
+    def accept(self, visitor: Visitor):
         visitor.type_name(type(self))
         visitor.string_variable('name', self.name)
         visitor.open_block()
@@ -309,7 +316,7 @@ class RelationshipStruct(DbVisitedElement):
         self.primary_key = primary_key_name
         self.foreing_key = foreing_key_name
 
-    def accept(self, visitor: CodeVisitor):
+    def accept(self, visitor: Visitor):
         visitor.type_name(type(self))
         visitor.open_block()
         visitor.string_variable('primary_table', self.primary_table)
@@ -318,7 +325,25 @@ class RelationshipStruct(DbVisitedElement):
         visitor.string_variable('foreing_key', self.foreing_key)
         visitor.open_block()             
         
-            
+
+
+class DataBaseStruct(DbCompositeElement):
+
+    def __init__(self, name: str = ''):
+        super().__init__(name)
+        self.tables = []
+        self.relationships = []
+
+    def add(self, db_element: DbVisitedElement):
+
+        if type(db_element) == type(TableStruct(table_name = None)):
+            self.tables.append(db_element)
+
+        elif type(db_element) == type(RelationshipStruct()):
+            self.relationships.append(db_element)
+        
+    
+
 
 class MetaProgramingHandler(Handler): 
     data_base_map = DataBaseStruct()
@@ -326,32 +351,32 @@ class MetaProgramingHandler(Handler):
     code = ''
         
     def create_table(self, table_name: str):
-        self.data_base_map.table_list.append(TableStruct(table_name))
+        self.data_base_map.tables.append(TableStruct(table_name))
    
-    def create_field(self, table_name: str, field_name: str, type_name: str = 'VARCHAR', length: int = 40):
-        for table in self.data_base_map.table_list:
+    def create_field(self, table_name: str, column_name: str, type_name: str = 'VARCHAR', length: int = 40):
+        for table in self.data_base_map.tables:
             if table.name == table_name:
-                new_field = FieldStruct(table_name, field_name, type_name, length)
+                new_field = ColumnStruct(table_name, column_name, type_name, length)
                 self.data_base_map.field_list.append(new_field)
              
-    def set_field_type(self, table_name: str, field_name: str, data_type: str):
-        for field in self.data_base_map.field_list:
-            if field.table == table_name and field.name == field_name:
-                field.type = data_type
+    def set_field_type(self, table_name: str, column_name: str, data_type: str):
+        for column in self.data_base_map.field_list:
+            if column.table == table_name and column.name == column_name:
+                column.type = data_type
         
     def delete_table(self, table_name: str):
         for table in self.data_base_map.table_list:
             if table.name == table_name:
                 self.data_base_map.table_list.remove(table)
 
-        for field in self.data_base_map.field_list:
-            if field.table == table_name:
-                self.data_base_map.field_list.remove(field)
+        for column in self.data_base_map.field_list:
+            if column.table == table_name:
+                self.data_base_map.field_list.remove(column)
     
-    def delete_field(self, table_name: str, field_name: str):
-        for field in self.data_base_map.field_list:
-            if field.table == table_name and field.name == field_name:
-                self.data_base_map.field_list.remove(field)
+    def delete_field(self, table_name: str, column_name: str):
+        for column in self.data_base_map.field_list:
+            if column.table == table_name and column.name == column_name:
+                self.data_base_map.field_list.remove(column)
 
     def primary_key(self, table_name: str) -> str:
         primary_key_name = ''
